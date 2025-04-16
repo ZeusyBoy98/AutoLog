@@ -1,7 +1,8 @@
-import { Text, View, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, TouchableWithoutFeedback } from "react-native";
+import { Text, View, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, TouchableWithoutFeedback, ActivityIndicator } from "react-native";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import * as Location from 'expo-location';
 
 export default function Create() {
     const [user, setUser] = useState("");
@@ -11,6 +12,75 @@ export default function Create() {
     const [arrTime, setArrTime] = useState("")
     const [date, setDate] = useState("");
     const [logs, setLogs] = useState([]);
+    const [arrLoading, setArrLoading] = useState(false);
+    const [depLoading, setDepLoading] = useState(false);
+    const [displayDep, setDisplayDep] = useState(null);
+    const [displayArr, setDisplayArr] = useState(null);
+
+    const getDepLocation = async () => {
+        setDepLoading(true);
+        try {
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Location permission is required to use this feature.');
+            setDepLoading(false);
+            return;
+          }
+    
+          let loc = await Location.getCurrentPositionAsync({});
+    
+          let addr = await Location.reverseGeocodeAsync({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+    
+          if (addr.length > 0) {
+            const a = addr[0];
+            const notReadable = `${a.name || ''}, ${a.street}, ${a.city || ''}, ${a.region || ''}, ${a.postalCode || ''}, ${a.country || ''}`;
+            const readable = `${a.name || ''}, ${a.city || ''}`;
+            setDisplayDep(readable);
+            setDeparture(notReadable);
+          }
+        } catch (err) {
+          console.error(err);
+          Alert.alert('Error', 'Could not fetch location.');
+        } finally {
+          setDepLoading(false);
+        }
+    };
+
+    const getArrLocation = async () => {
+        setArrLoading(true);
+        try {
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Location permission is required to use this feature.');
+            setArrLoading(false);
+            return;
+          }
+    
+          let loc = await Location.getCurrentPositionAsync({});
+    
+          let addr = await Location.reverseGeocodeAsync({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+    
+          if (addr.length > 0) {
+            const a = addr[0];
+            const notReadable = `${a.name || ''}, ${a.street}, ${a.city || ''}, ${a.region || ''}, ${a.postalCode || ''}, ${a.country || ''}`;
+            const readable = `${a.name || ''}, ${a.city || ''}`;
+            setDisplayArr(readable);
+            setArrival(notReadable)
+          }
+        } catch (err) {
+          console.error(err);
+          Alert.alert('Error', 'Could not fetch location.');
+        } finally {
+          setArrLoading(false);
+        }
+    };
+
 
     useEffect(() => {
         const loadData = async () => {
@@ -71,17 +141,40 @@ export default function Create() {
                     value={user}
                     onChangeText={setUser}
                 />
-                <View style={{flexDirection: "row", gap: 30}}>
-                    {/* add dep and arr buttons here*/}
-                </View>
-                <View style={{flexDirection: "row", gap: 30}}>
-                    <View style={{flexDirection: "column", gap: 10}}>
+                <Text>Departure:</Text>
+                <View style={styles.way}>
+                    <View style={{}}>
+                        <Pressable onPress={() => {getDepLocation()}} style={styles.button}>
+                            <Text style={styles.createText}>Get Departure</Text>
+                        </Pressable>
+                        {depLoading && <ActivityIndicator style={{}} />}
+                        {displayDep && (
+                            <View style={{marginBottom: 10}}>
+                                <Text style={styles.location}>{displayDep}</Text>
+                            </View>
+                        )}
+                    </View>
+                    <View>
                         <Pressable onPress={() => getCurrentTime(setDepTime)} style={styles.button}>
                             <Text style={styles.createText}>Get Time</Text>
                         </Pressable>
                         <Text style={styles.time}>Departure Time: {depTime}</Text>
                     </View>
-                    <View style={{flexDirection: "column", gap: 10}}>
+                </View>
+                <Text>Arrival:</Text>
+                <View style={styles.way}>
+                    <View style={{}}>
+                        <Pressable onPress={() => { getArrLocation() }} style={styles.button}>
+                            <Text style={styles.createText}>Get Arrival</Text>
+                        </Pressable>
+                        {arrLoading && <ActivityIndicator style={{}} />}
+                        {displayArr && (
+                            <View style={{marginBottom: 10}}>
+                                <Text style={styles.location}>{displayArr}</Text>
+                            </View>
+                        )}
+                    </View>
+                    <View>
                         <Pressable onPress={() => getCurrentTime(setArrTime)} style={styles.button}>
                             <Text style={styles.createText}>Get Time</Text>
                         </Pressable>
@@ -106,18 +199,27 @@ const styles = StyleSheet.create({
     fontSize: 50,
     fontWeight: "bold",
   },
+  way: {
+    borderWidth: 1,
+    borderColor: 'black',
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
   input: {
     borderWidth: 1,
     borderColor: "black",
     borderRadius: 10,
     padding: 10,
     fontSize: 20,
+    marginBottom: 10,
   },
   button: {
     backgroundColor: "blue",
     padding: 10,
     borderRadius: 10,
     alignItems: "center",
+    marginBottom: 5,
   },
   createButton: {
     backgroundColor: "blue",
